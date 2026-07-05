@@ -1,8 +1,9 @@
 import Editor from "@/components/Editor";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import { recallAuthor } from "@/lib/author";
 import { requireAuth } from "@/lib/auth";
-import { lastAuthor, listLabels } from "@/lib/repository";
+import { listLabels } from "@/lib/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function NewPostPage({ searchParams }: Props) {
           </h1>
           <Editor
             notice={notice}
-            initialAuthor={await lastAuthor()}
+            initialAuthor={await recallAuthor()}
             allLabels={await listLabels()}
           />
         </div>

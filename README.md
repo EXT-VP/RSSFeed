@@ -10,7 +10,8 @@ News panel and Confluence's RSS macro.
   automatic direction (`dir="auto"`), so Hebrew posts render right-to-left while
   the UI stays left-to-right.
 - **Plain text** posts (no Markdown); line breaks are preserved.
-- **Author byline** on every post; the editor remembers the last author used.
+- **Author byline** on every post; the editor remembers the last author you
+  used in this browser (cookie-based, per person — not site-wide).
 
 ## Stack
 - **Next.js 15** (App Router, React 19, TypeScript)

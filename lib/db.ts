@@ -23,7 +23,12 @@ async function connect(): Promise<Db> {
 
 export function getDb(): Promise<Db> {
   if (!globalForDb.__wireDb) {
-    globalForDb.__wireDb = connect();
+    globalForDb.__wireDb = connect().catch((err) => {
+      // Don't cache a failed connection — drop it so the next request retries
+      // (e.g. MongoDB wasn't up yet when the first request came in).
+      globalForDb.__wireDb = undefined;
+      throw err;
+    });
   }
   return globalForDb.__wireDb;
 }

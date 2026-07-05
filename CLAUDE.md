@@ -32,7 +32,10 @@ panel and Confluence's RSS macro. Dark-only theme, Hebrew/RTL supported.
   which call the repository and then `revalidatePath("/")` + `revalidatePath("/admin")`.
 - **DB access** is centralized in `lib/repository.ts`. `lib/db.ts` caches the
   Mongo connection promise on `globalThis` (survives dev hot-reload) and creates
-  the `{ status: 1, published_at: -1 }` index on `news_item`.
+  the `{ status: 1, published_at: -1 }` index on `news_item`. A **rejected**
+  connect is deliberately NOT cached (dropped in a `.catch`) so requests retry —
+  otherwise one failed boot-order race (app up before Mongo) poisons every
+  request until restart.
 
 ## Data model (`lib/repository.ts`)
 
@@ -62,6 +65,11 @@ panel and Confluence's RSS macro. Dark-only theme, Hebrew/RTL supported.
 - **Auth** (`lib/auth.ts`): a single shared `ADMIN_PASSWORD`, checked with
   `timingSafeEqual`; session is an HMAC cookie (`wire_session`). `requireAuth()`
   guards every Server Action.
+- **Author prefill is per-browser, not site-wide** (`lib/author.ts`): saving a
+  post stores the author in a `wire_author` cookie (URI-encoded — authors can be
+  Hebrew; 1-year, httpOnly); `/admin/new` prefills from it via `recallAuthor()`.
+  The old DB-wide `lastAuthor()` in the repository was removed on purpose —
+  don't reintroduce a global "whoever posted last" prefill.
 - **Styling**: one global stylesheet `app/globals.css` with CSS custom properties
   (true-black surfaces, hairline borders). No CSS framework, no CSS modules. Match
   the existing token vocabulary (`--surface-*`, `--primary`, `--accent`, `--rss`,
@@ -101,9 +109,16 @@ panel and Confluence's RSS macro. Dark-only theme, Hebrew/RTL supported.
   (client) does the scrolling. The marquee renders the headlines as one "group",
   measures it + the viewport (ResizeObserver), repeats the group enough times to
   always overflow the viewport (so **never any empty space**), and shifts the track by
-  exactly one group width per loop via `--ticker-shift` (`ticker-scroll` keyframes) —
-  seamless because every group is identical. Constant px/s speed, pauses on hover,
-  edges masked. Returns null when there's no news; updates via auto-refresh.
+  exactly one group width per loop — seamless because every group is identical.
+  The scroll is a **Web Animations API transform** (`track.animate(...)`), NOT a
+  CSS keyframe animation, **on purpose**: Windows often ships "Animation effects"
+  off → `prefers-reduced-motion: reduce` → the global `animation: none !important`
+  kill-switch would freeze a CSS ticker. WAAPI is still compositor-driven (smooth,
+  off main thread) but immune to that media query — the ticker is live content, so
+  it deliberately keeps scrolling under reduced motion. Consequently hover-pause is
+  JS too (`anim.pause()/play()` on viewport mouseenter/leave), since CSS
+  `animation-play-state` can't touch a WAAPI animation. Constant px/s speed, edges
+  masked. Returns null when there's no news; updates via auto-refresh.
 
 ## Commands
 

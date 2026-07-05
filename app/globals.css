@@ -295,14 +295,14 @@ button {
   align-items: center;
   flex: none;
   white-space: nowrap;
-  /* Promote to its own GPU layer so the scroll is composited, not repainted. */
+  /* Promote to its own GPU layer so the scroll is composited, not repainted.
+     The scroll itself is a Web Animations API transform set from
+     TickerMarquee.tsx (NOT a CSS animation) so the reduced-motion kill-switch
+     below doesn't freeze it — see the comment in that component. Hover-pause
+     also lives there. */
   will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
-  animation: ticker-scroll 20s linear infinite;
-}
-.ticker:hover .ticker-track {
-  animation-play-state: paused;
 }
 .ticker-group {
   display: inline-flex;
@@ -325,18 +325,6 @@ button {
   color: var(--accent);
   opacity: 0.65;
 }
-@keyframes ticker-scroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    /* shift by exactly one group width — every group is identical, so the
-       reset is seamless and there's never an empty gap. translate3d keeps it
-       on the compositor (GPU) rather than triggering layout/paint. */
-    transform: translate3d(calc(-1 * var(--ticker-shift, 0px)), 0, 0);
-  }
-}
-
 /* ============================================================
    Buttons
    ============================================================ */

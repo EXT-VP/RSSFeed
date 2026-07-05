@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { rememberAuthor } from "@/lib/author";
 import { login, logout, requireAuth } from "@/lib/auth";
 import { parseLabels } from "@/lib/format";
 import * as repo from "@/lib/repository";
@@ -48,6 +49,7 @@ export async function saveDispatch(formData: FormData) {
   } else {
     await repo.createItem(title, body, author, label, priority, status);
   }
+  await rememberAuthor(author);
   refresh();
   redirect("/admin");
 }

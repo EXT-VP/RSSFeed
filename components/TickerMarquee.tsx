@@ -12,10 +12,20 @@ const SPEED = 40; // px per second — constant regardless of how much content
  * space), and the track is shifted left by exactly one group width per loop —
  * because every group is identical, the reset is invisible. Re-measures on
  * resize and whenever the headline set changes.
+ *
+ * The scroll is driven by the Web Animations API, NOT a CSS animation, on
+ * purpose: Windows ships "Animation effects" off in many setups, which flips
+ * `prefers-reduced-motion: reduce`, and the global kill-switch in globals.css
+ * (`animation: none !important`) would freeze a CSS-keyframe ticker. WAAPI
+ * transforms still run on the compositor (same smoothness, off the main
+ * thread) but aren't touched by that media query. The ticker is live content,
+ * not decoration, so it deliberately keeps moving under reduced motion.
  */
 export default function TickerMarquee({ items }: { items: Item[] }) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<Animation | null>(null);
   const [groupW, setGroupW] = useState(0);
   const [repeat, setRepeat] = useState(2);
 
@@ -42,6 +52,27 @@ export default function TickerMarquee({ items }: { items: Item[] }) {
     return () => ro.disconnect();
   }, [items]);
 
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || groupW === 0) return;
+    const anim = track.animate(
+      [
+        { transform: "translate3d(0, 0, 0)" },
+        { transform: `translate3d(${-groupW}px, 0, 0)` },
+      ],
+      {
+        duration: (groupW / SPEED) * 1000,
+        iterations: Infinity,
+        easing: "linear",
+      },
+    );
+    animRef.current = anim;
+    return () => {
+      animRef.current = null;
+      anim.cancel();
+    };
+  }, [groupW]);
+
   const pieces = (decorative: boolean) =>
     items.map((item) => (
       <span className="ticker-piece" key={item.id}>
@@ -60,15 +91,19 @@ export default function TickerMarquee({ items }: { items: Item[] }) {
       </span>
     ));
 
-  const duration = Math.max(6, Math.round(groupW / SPEED));
-  const trackStyle = {
-    "--ticker-shift": `${groupW}px`,
-    animationDuration: `${duration}s`,
-  } as React.CSSProperties;
+  // Pause on hover in JS — the CSS `animation-play-state` trick only works on
+  // CSS animations, and this one is WAAPI-driven.
+  const pause = () => animRef.current?.pause();
+  const resume = () => animRef.current?.play();
 
   return (
-    <div className="ticker-viewport" ref={viewportRef}>
-      <div className="ticker-track" style={trackStyle}>
+    <div
+      className="ticker-viewport"
+      ref={viewportRef}
+      onMouseEnter={pause}
+      onMouseLeave={resume}
+    >
+      <div className="ticker-track" ref={trackRef}>
         <div className="ticker-group" ref={groupRef}>
           {pieces(false)}
         </div>

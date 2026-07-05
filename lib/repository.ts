@@ -145,15 +145,6 @@ export async function getPublishedItem(
   return doc ? toNewsItem(doc) : undefined;
 }
 
-/** The author of the most recent post, to prefill the editor. */
-export async function lastAuthor(): Promise<string> {
-  const doc = await (await newsCol()).findOne(
-    { author: { $ne: "" } },
-    { sort: { created_at: -1 }, projection: { author: 1 } },
-  );
-  return doc?.author ?? "";
-}
-
 export async function listPublished(limit?: number): Promise<NewsItem[]> {
   let cursor = (await newsCol())
     .find({ status: "published" })
