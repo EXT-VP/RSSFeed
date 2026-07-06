@@ -27,7 +27,8 @@ panel and Confluence's RSS macro. Dark-only theme, Hebrew/RTL supported.
   is no API layer for page data.
 - The **only** client components are the few interactive widgets:
   `components/LocalTime.tsx`, `components/Editor.tsx`,
-  `components/FeedChannels.tsx`, and `components/AutoRefresh.tsx`.
+  `components/FeedChannels.tsx`, `components/AutoRefresh.tsx`, and
+  `components/NewBadge.tsx`.
 - **Mutations** go through Server Actions in `app/admin/actions.ts` (`"use server"`),
   which call the repository and then `revalidatePath("/")` + `revalidatePath("/admin")`.
 - **DB access** is centralized in `lib/repository.ts`. `lib/db.ts` caches the
@@ -60,6 +61,11 @@ panel and Confluence's RSS macro. Dark-only theme, Hebrew/RTL supported.
 - **Time handling is split deliberately**: server/feed formatting in `lib/format.ts`
   is **UTC**; on-screen timestamps render in the **viewer's local TZ** via the
   client `LocalTime` component. Keep new user-facing times going through `LocalTime`.
+- **"New" badge is self-expiring**: window is 10h (`RECENT_WINDOW_MS` in
+  `lib/format.ts`); `components/NewBadge.tsx` (client) hides itself via a
+  `setTimeout` at the exact expiry moment — the badge must NOT be rendered by a
+  server-only `isRecent()` check, or it lingers until a manual refresh
+  (auto-refresh only fires on data changes, not time passing).
 - **Hebrew/RTL**: user content uses `dir="auto"`; the UI chrome stays LTR. Preserve
   `dir="auto"` on any element that shows title/author/label/body.
 - **Auth** (`lib/auth.ts`): a single shared `ADMIN_PASSWORD`, checked with

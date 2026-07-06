@@ -8,11 +8,11 @@ import LocalTime from "@/components/LocalTime";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { config, feedUrls } from "@/lib/config";
+import NewBadge from "@/components/NewBadge";
 import {
   dayKey,
   dayLabel,
   excerptFromHtml,
-  isRecent,
   labelChipStyle,
   labelStyle,
   parseLabels,
@@ -249,9 +249,7 @@ export default async function Home({ searchParams }: Props) {
                             </span>
                             <span className="sep">·</span>
                             <LocalTime iso={iso} mode="relative" />
-                            {isRecent(iso) && (
-                              <span className="feed-new">New</span>
-                            )}
+                            <NewBadge iso={iso} />
                             {item.priority === "high" && (
                               <span className="prio prio-high">Important</span>
                             )}

@@ -102,10 +102,13 @@ export function dayLabel(iso: string): string {
   return formatDateNice(iso);
 }
 
-/** Published within the last 24h. */
+/** How long a post counts as "New" (10 hours). */
+export const RECENT_WINDOW_MS = 36_000_000;
+
+/** Published within the last 10h. */
 export function isRecent(iso: string | null): boolean {
   if (!iso) return false;
-  return Date.now() - new Date(iso).getTime() < 86_400_000;
+  return Date.now() - new Date(iso).getTime() < RECENT_WINDOW_MS;
 }
 
 /** "28 JUN 2026 · 14:12 UTC". */
