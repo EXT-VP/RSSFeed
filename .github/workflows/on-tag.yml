@@ -54,7 +54,7 @@ jobs:
           test -f "$FILE" || { echo "::error::missing $FILE"; ls -lah /tmp; exit 1; }
 
           aws s3 cp "$FILE" \
-            "s3://y.packages/rssfeed/rssfeed-${TAG}.tar" \
+            "s3://y.packages/rssfeed/rssfeed.tar" \
             --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
             --checksum-algorithm CRC32 \
             --no-progress
