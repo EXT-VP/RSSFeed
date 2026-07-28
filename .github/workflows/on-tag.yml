@@ -58,3 +58,15 @@ jobs:
             --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
             --checksum-algorithm CRC32 \
             --no-progress
+
+          for ENV_FILE in .env .env.example; do
+            if [ -f "$ENV_FILE" ]; then
+              aws s3 cp "$ENV_FILE" \
+                "s3://y.packages/tools/rssfeed/${ENV_FILE}" \
+                --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
+                --checksum-algorithm CRC32 \
+                --no-progress
+            else
+              echo "::notice::${ENV_FILE} not found, skipping upload"
+            fi
+          done
