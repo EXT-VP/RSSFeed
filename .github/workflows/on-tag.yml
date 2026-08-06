@@ -1,3 +1,12 @@
+#################################
+# ---- SECRETS ----
+# S3_ACCESS_KEY_ID
+# S3_SECRET_ACCESS_KEY
+# -----------------
+# ---- VARS ----
+# SERVICE_NAME
+# S3_FOLDER [services/tools]
+#################################
 name: Build Docker on Tag
 
 on:
@@ -27,44 +36,47 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: rssfeed:${{ steps.tag.outputs.tag }}
+          tags: ${{vars.SERVICE_NAME}}:${{ steps.tag.outputs.tag }}
           build-args: |
             APP_VERSION=${{ steps.tag.outputs.tag }}
-          outputs: type=docker,dest=/tmp/rssfeed-${{ steps.tag.outputs.tag }}.tar
+          outputs: type=docker,dest=/tmp/${{vars.SERVICE_NAME}}-${{ steps.tag.outputs.tag }}.tar
 
       - name: Create GitHub Release with image
         uses: softprops/action-gh-release@v2
         with:
-          files: /tmp/rssfeed-${{ steps.tag.outputs.tag }}.tar
+          files: /tmp/${{vars.SERVICE_NAME}}-${{ steps.tag.outputs.tag }}.tar
           name: Release ${{ steps.tag.outputs.tag }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
 
       - name: Upload Docker image to S3
         env:
+          S3_FOLDER: ${{ vars.S3_FOLDER }}
+          SERVICE_NAME: ${{ vars.SERVICE_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
           AWS_EC2_METADATA_DISABLED: true
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          FILE="/tmp/rssfeed-${TAG}.tar"
+          FILE="/tmp/${SERVICE_NAME}-${TAG}.tar"
           test -f "$FILE" || { echo "::error::missing $FILE"; ls -lah /tmp; exit 1; }
 
+           # Delete all existing files in the folder
+          aws s3 rm "s3://y.packages/${S3_FOLDER}/${SERVICE_NAME}/" --recursive
+
           aws s3 cp "$FILE" \
-            "s3://y.packages/tools/rssfeed/rssfeed.tar" \
+            "s3://y.packages/${S3_FOLDER}/${SERVICE_NAME}/${TAG}.${SERVICE_NAME}.tar" \
             --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
             --checksum-algorithm CRC32 \
             --no-progress
 
           if [ -f .env.example ]; then
             aws s3 cp .env.example \
-              "s3://y.packages/tools/rssfeed/.env.example" \
+              "s3://y.packages/${S3_FOLDER}/${SERVICE_NAME}/${TAG}.env.example" \
               --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
               --checksum-algorithm CRC32 \
               --no-progress
-          else
-            echo "::notice::.env.example not found, skipping upload"
+          else2
+            echo "skip .env.example (not found)"
           fi
